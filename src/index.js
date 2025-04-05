@@ -2,19 +2,21 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const dotenv = require('dotenv');
+const errorHandler = require('./middleware/errorHandler');
+const recomRoutes = require('./routes/recomRoutes');
 const { createServer } = require('http');
 const { initializeSocket } = require('./config/socket');
 const authRoutes = require('./routes/authRoutes');
 const ticketRoutes = require('./routes/ticketRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
-const qrcodeRoutes = require('./routes/qrcodeRoutes'); 
+const bookingRoutes = require('./routes/bookingRoutes'); 
 const audienceRoutes = require('./routes/audienceRoutes');
 const sequelize = require('./config/database');
 const Audience = require('./models/audienceModel');
 const Ticket = require('./models/ticketModel');
 const Payment = require('./models/paymentModel');
 const User = require('./models/authModel');
-
+const Recommendation = require('./models/recomModel');
 
 // Define relationships more explicitly
 User.hasMany(Ticket, {
@@ -46,16 +48,30 @@ Audience.belongsTo(Ticket, {
     as: 'ticket'
 });
 
+User.hasMany(Recommendation, {
+    foreignKey: 'userId',
+    onDelete: 'CASCADE'
+});
+
+Recommendation.belongsTo(User, {
+    foreignKey: 'userId'
+});
+
 const initDatabase = async () => {
     try {
-        await sequelize.sync({ alter: true });
-        console.log('✅ All models synchronized');
+        await sequelize.authenticate();
+        console.log('✅ Database connected');
         
-        // Log available tables
-        const [results] = await sequelize.query('SELECT table_name FROM information_schema.tables WHERE table_schema = \'public\'');
-        console.log('📋 Available tables:', results.map(r => r.table_name));
+        setupAssociations();
+        console.log('✅ Model associations established');
+        
+        await sequelize.sync({ alter: true });
+        console.log('✅ Database synchronized');
+
+        return true;
     } catch (error) {
-        console.error('❌ Error syncing models:', error);
+        console.error('❌ Database initialization failed:', error);
+        return false;
     }
 };
 
@@ -76,8 +92,9 @@ const io = initializeSocket(httpServer);
 app.use('/api/auth', authRoutes);
 app.use('/api/tickets', ticketRoutes);
 app.use('/api/payments', paymentRoutes);
-app.use('/api/qrcode', qrcodeRoutes);
+app.use('/api/booking', bookingRoutes);
 app.use('/api/audience', audienceRoutes);
+app.use('/api/recommendations', recomRoutes);
 
 // Root route
 app.get('/', (req, res) => {
@@ -85,7 +102,7 @@ app.get('/', (req, res) => {
 });
 
 // Error handling
-// ...existing code...
+app.use(errorHandler);
 
 // Better error handling middleware
 app.use((err, req, res, next) => {
@@ -120,4 +137,8 @@ httpServer.listen(PORT, () => {
     console.log('  └── POST /api/tickets');
     console.log('  └── PUT  /api/tickets/:id');
     console.log('  └── GET  /api/tickets/stats/:eventId');
+    console.log('  └── GET  /api/recommendations/personalized/:userId');
+    console.log('  └── GET  /api/recommendations/trending');
+    console.log('  └── GET  /api/recommendations/similar/:eventId');
+    console.log('  └── POST /api/recommendations/track');
 });
