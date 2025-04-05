@@ -28,7 +28,7 @@ const Recommendation = sequelize.define('Recommendation', {
         }
     },
     type: {
-        type: DataTypes.ENUM('PERSONALIZED', 'TRENDING', 'SIMILAR'),
+        type: DataTypes.ENUM('PERSONALIZED', 'TRENDING', 'SIMILAR', 'PRICING'),
         defaultValue: 'PERSONALIZED'
     },
     metadata: {
@@ -49,4 +49,50 @@ const Recommendation = sequelize.define('Recommendation', {
     ]
 });
 
-module.exports = Recommendation;
+// Force sync for development
+const initRecommendation = async () => {
+    try {
+        await Recommendation.sync({ force: true });
+        console.log('✅ Recommendation table created');
+    } catch (error) {
+        console.error('❌ Recommendation table creation failed:', error);
+    }
+};
+
+// Create sample recommendations
+const createSampleRecommendations = async (userId) => {
+    try {
+        const recommendations = [
+            {
+                userId,
+                eventId: 'event_1',
+                score: 0.95,
+                type: 'PERSONALIZED',
+                metadata: { category: 'music', popularity: 'high' }
+            },
+            {
+                userId,
+                eventId: 'event_2',
+                score: 0.85,
+                type: 'PERSONALIZED',
+                metadata: { category: 'sports', popularity: 'medium' }
+            },
+            {
+                userId,
+                eventId: 'event_3',
+                score: 0.75,
+                type: 'PERSONALIZED',
+                metadata: { category: 'art', popularity: 'low' }
+            }
+        ];
+
+        await Recommendation.bulkCreate(recommendations);
+        console.log('✅ Sample recommendations created');
+    } catch (error) {
+        console.error('❌ Failed to create sample recommendations:', error);
+    }
+};
+
+initRecommendation();
+
+module.exports = { Recommendation, createSampleRecommendations };

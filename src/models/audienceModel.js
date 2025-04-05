@@ -9,31 +9,54 @@ const Audience = sequelize.define('Audience', {
     },
     eventId: {
         type: DataTypes.STRING,
-        allowNull: false
+        allowNull: false,
+        validate: {
+            notEmpty: true
+        }
+    },
+    ticketId: {
+        type: DataTypes.UUID,
+        allowNull: true,
+        references: {
+            model: 'tickets',
+            key: 'id'
+        }
     },
     metrics: {
-        type: DataTypes.JSONB,  // Using JSONB for PostgreSQL
-        allowNull: false
+        type: DataTypes.JSONB,
+        allowNull: false,
+        defaultValue: {},
+        validate: {
+            isValidMetrics(value) {
+                if (!value.totalAttendees || !value.currentlyPresent) {
+                    throw new Error('Metrics must include totalAttendees and currentlyPresent');
+                }
+            }
+        }
     },
     timestamp: {
         type: DataTypes.DATE,
         defaultValue: DataTypes.NOW
     }
 }, {
-    tableName: 'audiences',  // Explicitly set table name
-    timestamps: true
+    tableName: 'audiences',
+    timestamps: true,
+    indexes: [
+        { fields: ['eventId'] },
+        { fields: ['ticketId'] }
+    ]
 });
 
-// Sync the model with database
-const syncAudience = async () => {
+// Force sync for development
+const initAudience = async () => {
     try {
-        await Audience.sync({ alter: true });
-        console.log('✅ Audience table synchronized successfully');
+        await Audience.sync({ force: true });
+        console.log('✅ Audience table created');
     } catch (error) {
-        console.error('❌ Error syncing Audience table:', error);
+        console.error('❌ Audience table creation failed:', error);
     }
 };
 
-syncAudience();
+initAudience();
 
 module.exports = Audience;
