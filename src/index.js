@@ -1,13 +1,14 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const dotenv = require('dotenv');
-const sequelize = require('./config/database');
 const { createServer } = require('http');
 const { initializeSocket } = require('./config/socket');
 const authRoutes = require('./routes/authRoutes');
 const ticketRoutes = require('./routes/ticketRoutes');
 
 dotenv.config();
+
 const app = express();
 const httpServer = createServer(app);
 
@@ -17,32 +18,51 @@ app.use(express.json());
 
 // Initialize Socket.io
 const io = initializeSocket(httpServer);
-
+const paymentRoutes = require('./routes/paymentRoutes');
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/tickets', ticketRoutes);
+app.use('/api/payments', paymentRoutes);
+
+// Root route
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, '..', 'test.html'));
+});
 
 // Error handling
+// ...existing code...
+
+// Better error handling middleware
 app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).send('Something broke!');
+    console.error('Error details:', {
+        message: err.message,
+        path: req.path,
+        method: req.method,
+        body: req.body,
+        stack: err.stack
+    });
+
+    res.status(err.status || 500).json({
+        error: {
+            message: err.message || 'Internal server error',
+            path: req.path,
+            timestamp: new Date().toISOString()
+        }
+    });
 });
 
 const PORT = process.env.PORT || 3000;
 
-// Database & Server initialization
-const startServer = async () => {
-  try {
-    await sequelize.authenticate();
-    console.log('Database connected successfully');
-    
-    httpServer.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
-      console.log(`Socket.io listening for connections`);
-    });
-  } catch (error) {
-    console.error('Unable to start server:', error);
-  }
-};
-
-startServer();                      
+// Improve server startup logging
+httpServer.listen(PORT, () => {
+    console.log('🚀 Server Status:');
+    console.log(`- HTTP server: http://localhost:${PORT}`);
+    console.log('- Socket.io: Ready for connections');
+    console.log('- Available routes:');
+    console.log('  └── GET  /');
+    console.log('  └── POST /api/auth/login');
+    console.log('  └── POST /api/auth/register');
+    console.log('  └── POST /api/tickets');
+    console.log('  └── PUT  /api/tickets/:id');
+    console.log('  └── GET  /api/tickets/stats/:eventId');
+});
