@@ -6,6 +6,8 @@ const { createServer } = require('http');
 const { initializeSocket } = require('./config/socket');
 const authRoutes = require('./routes/authRoutes');
 const ticketRoutes = require('./routes/ticketRoutes');
+const paymentRoutes = require('./routes/paymentRoutes');
+const qrcodeRoutes = require('./routes/qrcodeRoutes'); 
 
 dotenv.config();
 
@@ -18,11 +20,12 @@ app.use(express.json());
 
 // Initialize Socket.io
 const io = initializeSocket(httpServer);
-const paymentRoutes = require('./routes/paymentRoutes');
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/tickets', ticketRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/qrcode', qrcodeRoutes);
 
 // Root route
 app.get('/', (req, res) => {
