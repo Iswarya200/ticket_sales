@@ -8,7 +8,58 @@ const authRoutes = require('./routes/authRoutes');
 const ticketRoutes = require('./routes/ticketRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 const qrcodeRoutes = require('./routes/qrcodeRoutes'); 
+const audienceRoutes = require('./routes/audienceRoutes');
+const sequelize = require('./config/database');
+const Audience = require('./models/audienceModel');
+const Ticket = require('./models/ticketModel');
+const Payment = require('./models/paymentModel');
+const User = require('./models/authModel');
 
+
+// Define relationships more explicitly
+User.hasMany(Ticket, {
+    foreignKey: 'userId',
+    onDelete: 'CASCADE'
+});
+
+Ticket.belongsTo(User, {
+    foreignKey: 'userId'
+});
+
+Ticket.hasOne(Payment, {
+    foreignKey: 'ticketId',
+    onDelete: 'CASCADE'
+});
+
+Payment.belongsTo(Ticket, {
+    foreignKey: 'ticketId'
+});
+
+Ticket.hasMany(Audience, {
+    foreignKey: 'ticketId',
+    onDelete: 'CASCADE',
+    as: 'audienceMetrics'
+});
+
+Audience.belongsTo(Ticket, {
+    foreignKey: 'ticketId',
+    as: 'ticket'
+});
+
+const initDatabase = async () => {
+    try {
+        await sequelize.sync({ alter: true });
+        console.log('✅ All models synchronized');
+        
+        // Log available tables
+        const [results] = await sequelize.query('SELECT table_name FROM information_schema.tables WHERE table_schema = \'public\'');
+        console.log('📋 Available tables:', results.map(r => r.table_name));
+    } catch (error) {
+        console.error('❌ Error syncing models:', error);
+    }
+};
+
+initDatabase();
 dotenv.config();
 
 const app = express();
@@ -26,6 +77,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/tickets', ticketRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/qrcode', qrcodeRoutes);
+app.use('/api/audience', audienceRoutes);
 
 // Root route
 app.get('/', (req, res) => {

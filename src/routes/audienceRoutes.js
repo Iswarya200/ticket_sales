@@ -1,6 +1,11 @@
 const router = require('express').Router();
-const { updateAudienceMetrics } = require('../controllers/audienceController');
+const { 
+    updateAudienceMetrics, 
+    getAudienceInsights 
+} = require('../controllers/audienceController');
 
+// Metrics endpoints
 router.post('/metrics', updateAudienceMetrics);
+router.get('/insights/:eventId', getAudienceInsights);
 
 module.exports = router;

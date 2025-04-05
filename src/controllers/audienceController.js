@@ -3,22 +3,36 @@ const {
     emitSalesAlert, 
     emitError 
 } = require('../utils/socketEmitter');
-const Audience = require('../models/Audience');
+const Audience = require('../models/audienceModel');
+
+const analyzeAudiencePattern = async (eventId) => {
+    const latestMetrics = await Audience.findOne({
+        where: { eventId },
+        order: [['timestamp', 'DESC']]
+    });
+
+    return {
+        significant: latestMetrics?.metrics?.currentlyPresent > 100,
+        message: 'High attendance detected',
+        data: latestMetrics?.metrics
+    };
+};
 
 const updateAudienceMetrics = async (req, res) => {
     try {
         const { eventId, metrics } = req.body;
         
-        // Update audience metrics in database
-        const updatedMetrics = await Audience.update(metrics, {
-            where: { eventId },
-            returning: true
+        // Store in database
+        const audienceRecord = await Audience.create({
+            eventId,
+            metrics,
+            timestamp: new Date()
         });
 
         // Emit audience update
         emitAudienceUpdate(eventId, {
-            metrics: updatedMetrics,
-            timestamp: new Date()
+            metrics: audienceRecord.metrics,
+            timestamp: audienceRecord.timestamp
         });
 
         // Check for interesting patterns
@@ -32,7 +46,7 @@ const updateAudienceMetrics = async (req, res) => {
             });
         }
 
-        res.status(200).json(updatedMetrics);
+        res.status(200).json(audienceRecord);
     } catch (error) {
         emitError(req.body.eventId, error);
         res.status(500).json({ error: error.message });
@@ -42,7 +56,18 @@ const updateAudienceMetrics = async (req, res) => {
 const getAudienceInsights = async (req, res) => {
     try {
         const { eventId } = req.params;
-        const insights = await generateAudienceInsights(eventId);
+        
+        const insights = await Audience.findAll({
+            where: { eventId },
+            order: [['timestamp', 'DESC']],
+            limit: 10
+        });
+
+        if (!insights.length) {
+            return res.status(404).json({ 
+                error: `No audience data found for event ID: ${eventId}` 
+            });
+        }
 
         emitAudienceUpdate(eventId, {
             type: 'INSIGHTS',
