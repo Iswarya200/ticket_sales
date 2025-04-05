@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Ticket Sales</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f2f5;
+            color: #333;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-card h3 {
+            margin: 0;
+            font-size: 14px;
+            color: #666;
+        }
+        .stat-card p {
+            margin: 10px 0 0;
+            font-size: 24px;
+            font-weight: bold;
+            color: #2196F3;
+        }
+        canvas {
+            width: 100%;
+            height: 400px;
+            background-color: white;
+            border-radius: 8px;
+        }
+        .input-form {
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+        }
+        .input-form input {
+            padding: 8px;
+            margin-right: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .input-form button {
+            padding: 8px 15px;
+            background-color: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .input-form button:hover {
+            background-color: #1976D2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Live Ticket Sales Dashboard</h1>
+        </div>
+        <div class="input-form">
+            <input type="number" id="ticketInput" placeholder="Enter number of tickets sold" min="0">
+            <button onclick="addTicketSale()">Add Sale</button>
+        </div>
+        <div class="stats">
+            <div class="stat-card">
+                <h3>Total Tickets Sold</h3>
+                <p id="totalTickets">0</p>
+            </div>
+            <div class="stat-card">
+                <h3>Average Sales/Min</h3>
+                <p id="avgSales">0</p>
+            </div>
+            <div class="stat-card">
+                <h3>Peak Sales</h3>
+                <p id="peakSales">0</p>
+            </div>
+        </div>
+        <canvas id="ticketChart"></canvas>
+    </div>
+
+    <script>
+        class TicketSalesGraph {
+            constructor() {
+                this.canvas = document.getElementById('ticketChart');
+                this.ctx = this.canvas.getContext('2d');
+                this.data = {
+                    times: [],
+                    tickets: [],
+                    maxTickets: 0,
+                    totalTickets: 0
+                };
+                this.config = {
+                    maxDataPoints: 60,
+                    updateInterval: 1000,
+                    padding: 40,
+                    pointRadius: 4,
+                    colors: {
+                        line: '#2196F3',
+                        point: '#1976D2',
+                        grid: '#E0E0E0',
+                        text: '#333'
+                    }
+                };
+                this.initialize();
+            }
+
+            initialize() {
+                this.setCanvasSize();
+                window.addEventListener('resize', () => this.setCanvasSize());
+            }
+
+            setCanvasSize() {
+                this.canvas.width = this.canvas.offsetWidth;
+                this.canvas.height = this.canvas.offsetHeight;
+                this.drawGraph();
+            }
+
+            addTicketSale(tickets) {
+                const now = new Date();
+                // Format time as HH:MM:SS
+                const timeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+                
+                this.data.times.push(timeStr);
+                this.data.tickets.push(tickets);
+                this.data.totalTickets += tickets;
+
+                if (this.data.times.length > this.config.maxDataPoints) {
+                    this.data.times.shift();
+                    this.data.tickets.shift();
+                }
+
+                this.data.maxTickets = Math.max(...this.data.tickets, this.data.maxTickets);
+                this.updateStats();
+                this.drawGraph();
+            }
+
+            updateStats() {
+                document.getElementById('totalTickets').textContent = this.data.totalTickets;
+                
+                const avgSales = this.data.tickets.length > 0 
+                    ? (this.data.tickets.reduce((a, b) => a + b, 0) / this.data.tickets.length * 60).toFixed(1)
+                    : 0;
+                document.getElementById('avgSales').textContent = avgSales;
+                
+                document.getElementById('peakSales').textContent = this.data.maxTickets;
+            }
+
+            drawGraph() {
+                this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+                if (this.data.times.length === 0) return;
+
+                const xScale = (this.canvas.width - 2 * this.config.padding) / (this.config.maxDataPoints - 1);
+                const yScale = (this.canvas.height - 2 * this.config.padding) / (this.data.maxTickets || 10);
+
+                this.drawGrid(xScale, yScale);
+                this.drawData(xScale, yScale);
+                this.drawAxes();
+            }
+
+            drawGrid(xScale, yScale) {
+                this.ctx.strokeStyle = this.config.colors.grid;
+                this.ctx.lineWidth = 1;
+
+                // Horizontal grid lines
+                for (let i = 0; i <= 10; i++) {
+                    const y = this.canvas.height - this.config.padding - (i * (this.canvas.height - 2 * this.config.padding) / 10);
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(this.config.padding, y);
+                    this.ctx.lineTo(this.canvas.width - this.config.padding, y);
+                    this.ctx.stroke();
+                }
+
+                // Vertical grid lines
+                for (let i = 0; i < this.config.maxDataPoints; i += 5) {
+                    const x = this.config.padding + i * xScale;
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(x, this.config.padding);
+                    this.ctx.lineTo(x, this.canvas.height - this.config.padding);
+                    this.ctx.stroke();
+                }
+            }
+
+            drawData(xScale, yScale) {
+                // Draw the connecting line first
+                this.ctx.beginPath();
+                this.ctx.strokeStyle = this.config.colors.line;
+                this.ctx.lineWidth = 2;
+
+                // Draw the line connecting all points
+                this.data.times.forEach((time, index) => {
+                    const x = this.config.padding + index * xScale;
+                    const y = this.canvas.height - this.config.padding - this.data.tickets[index] * yScale;
+
+                    if (index === 0) {
+                        this.ctx.moveTo(x, y);
+                    } else {
+                        this.ctx.lineTo(x, y);
+                    }
+                });
+                this.ctx.stroke();
+
+                // Then draw the points on top
+                this.data.times.forEach((time, index) => {
+                    const x = this.config.padding + index * xScale;
+                    const y = this.canvas.height - this.config.padding - this.data.tickets[index] * yScale;
+
+                    // Draw point
+                    this.ctx.beginPath();
+                    this.ctx.arc(x, y, this.config.pointRadius, 0, Math.PI * 2);
+                    this.ctx.fillStyle = this.config.colors.point;
+                    this.ctx.fill();
+                });
+            }
+
+            drawAxes() {
+                this.ctx.strokeStyle = this.config.colors.text;
+                this.ctx.lineWidth = 2;
+
+                // X-axis
+                this.ctx.beginPath();
+                this.ctx.moveTo(this.config.padding, this.canvas.height - this.config.padding);
+                this.ctx.lineTo(this.canvas.width - this.config.padding, this.canvas.height - this.config.padding);
+                this.ctx.stroke();
+
+                // Y-axis
+                this.ctx.beginPath();
+                this.ctx.moveTo(this.config.padding, this.config.padding);
+                this.ctx.lineTo(this.config.padding, this.canvas.height - this.config.padding);
+                this.ctx.stroke();
+
+                // Labels
+                this.ctx.fillStyle = this.config.colors.text;
+                this.ctx.font = '12px Arial';
+                this.ctx.textAlign = 'center';
+
+                // X-axis labels - show time for each data point
+                this.data.times.forEach((time, index) => {
+                    const x = this.config.padding + index * ((this.canvas.width - 2 * this.config.padding) / (this.config.maxDataPoints - 1));
+                    // Rotate text for better readability
+                    this.ctx.save();
+                    this.ctx.translate(x, this.canvas.height - this.config.padding + 20);
+                    this.ctx.rotate(-Math.PI / 4); // 45 degrees
+                    this.ctx.fillText(time, 0, 0);
+                    this.ctx.restore();
+                });
+
+                // Y-axis labels
+                for (let i = 0; i <= 10; i++) {
+                    const y = this.canvas.height - this.config.padding - (i * (this.canvas.height - 2 * this.config.padding) / 10);
+                    const value = Math.round((this.data.maxTickets || 10) * i / 10);
+                    this.ctx.textAlign = 'right';
+                    this.ctx.fillText(value.toString(), this.config.padding - 10, y + 5);
+                }
+            }
+        }
+
+        let graph;
+        window.addEventListener('load', () => {
+            graph = new TicketSalesGraph();
+        });
+
+        function addTicketSale() {
+            const input = document.getElementById('ticketInput');
+            const tickets = parseInt(input.value);
+            
+            if (isNaN(tickets) || tickets < 0) {
+                alert('Please enter a valid number of tickets');
+                return;
+            }
+
+            graph.addTicketSale(tickets);
+            input.value = ''; // Clear the input field
+        }
+
+        // Allow Enter key to submit
+        document.getElementById('ticketInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                addTicketSale();
+            }
+        });
+    </script>
+</body>
+</html> 
