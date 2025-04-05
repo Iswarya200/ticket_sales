@@ -22,16 +22,27 @@ const updateAudienceMetrics = async (req, res) => {
     try {
         const { eventId, metrics } = req.body;
         
+        if (!eventId || !metrics) {
+            return res.status(400).json({
+                error: 'eventId and metrics are required'
+            });
+        }
+
         // Store in database
         const audienceRecord = await Audience.create({
             eventId,
-            metrics,
+            metrics: {
+                totalAttendees: metrics.totalAttendees,
+                currentlyPresent: metrics.currentlyPresent,
+                peakAttendance: metrics.peakAttendance
+            },
             timestamp: new Date()
         });
 
         // Emit audience update
         emitAudienceUpdate(eventId, {
-            metrics: audienceRecord.metrics,
+            action: 'UPDATE',
+            metrics: audienceRecord.metrics,  // Changed from audience.metrics to audienceRecord.metrics
             timestamp: audienceRecord.timestamp
         });
 
@@ -46,8 +57,9 @@ const updateAudienceMetrics = async (req, res) => {
             });
         }
 
-        res.status(200).json(audienceRecord);
+        res.status(201).json(audienceRecord);  // Changed status to 201 for resource creation
     } catch (error) {
+        console.error('Audience Metrics Error:', error);
         emitError(req.body.eventId, error);
         res.status(500).json({ error: error.message });
     }

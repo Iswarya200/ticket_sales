@@ -17,6 +17,7 @@ const Ticket = require('./models/ticketModel');
 const Payment = require('./models/paymentModel');
 const User = require('./models/authModel');
 const Recommendation = require('./models/recomModel');
+const pricingRoutes = require('./routes/pricingRoutes');
 
 // Define relationships more explicitly
 User.hasMany(Ticket, {
@@ -95,6 +96,7 @@ app.use('/api/payments', paymentRoutes);
 app.use('/api/booking', bookingRoutes);
 app.use('/api/audience', audienceRoutes);
 app.use('/api/recommendations', recomRoutes);
+app.use('/api/pricing', pricingRoutes);
 
 // Root route
 app.get('/', (req, res) => {
@@ -141,4 +143,5 @@ httpServer.listen(PORT, () => {
     console.log('  └── GET  /api/recommendations/trending');
     console.log('  └── GET  /api/recommendations/similar/:eventId');
     console.log('  └── POST /api/recommendations/track');
+    console.log('  └── GET  /api/pricing');
 });

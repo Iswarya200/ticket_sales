@@ -6,9 +6,16 @@ const emitTicketUpdate = (eventId, ticketData) => {
   io.to(`event-${eventId}`).emit('ticketUpdate', ticketData);
 };
 
-const emitSalesAlert = (eventId, alertData) => {
+// Booking related events
+const emitBookingUpdate = (eventId, bookingData) => {
   const io = getIO();
-  io.to(`event-${eventId}`).emit('salesAlert', alertData);
+  io.to(`event-${eventId}`).emit('bookingUpdate', bookingData);
+};
+
+// Recommendation related events
+const emitRecommendationUpdate = (userId, recommendationData) => {
+  const io = getIO();
+  io.to(`user-${userId}`).emit('recommendationUpdate', recommendationData);
 };
 
 // Analytics related events
@@ -17,13 +24,19 @@ const emitAudienceUpdate = (eventId, analyticsData) => {
   io.to(`event-${eventId}`).emit('audienceUpdate', analyticsData);
 };
 
-// Dashboard related events
+// Sales related events
+const emitSalesAlert = (eventId, salesData) => {
+  const io = getIO();
+  io.to(`event-${eventId}`).emit('salesAlert', salesData);
+};
+
+// Revenue related events
 const emitRevenueUpdate = (eventId, revenueData) => {
   const io = getIO();
   io.to(`event-${eventId}`).emit('revenueUpdate', revenueData);
 };
 
-// Marketing related events
+// Campaign related events
 const emitCampaignUpdate = (eventId, campaignData) => {
   const io = getIO();
   io.to(`event-${eventId}`).emit('campaignUpdate', campaignData);
@@ -38,10 +51,7 @@ const emitRecommendation = (eventId, recommendation) => {
 // Error handling
 const emitError = (eventId, error) => {
   const io = getIO();
-  io.to(`event-${eventId}`).emit('error', {
-    message: error.message,
-    timestamp: new Date()
-  });
+  io.to(`event-${eventId}`).emit('error', error);
 };
 
 module.exports = {
@@ -51,5 +61,7 @@ module.exports = {
   emitRevenueUpdate,
   emitCampaignUpdate,
   emitRecommendation,
+  emitBookingUpdate,
+  emitRecommendationUpdate,
   emitError,
 };

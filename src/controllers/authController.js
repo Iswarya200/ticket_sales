@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const { v4: uuidv4 } = require('uuid');
 
 // In-memory store for demo (replace with database in production)
 let organizers = [];
@@ -16,9 +17,9 @@ const register = async (req, res) => {
         // Hash password
         const hashedPassword = await bcrypt.hash(password, 10);
 
-        // Create new organizer
+        // Create new organizer with UUID
         const organizer = {
-            id: Math.random().toString(36).substr(2, 9),
+            id: uuidv4(),
             email,
             password: hashedPassword,
             organizationName,

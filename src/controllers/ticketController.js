@@ -12,8 +12,7 @@ const createTicket = async (req, res) => {
         };
         
         tickets.push(ticket);
-        console.log('Ticket created:', ticket);
-
+        
         emitTicketUpdate(ticket.eventId, {
             action: 'CREATE',
             ticket,
