@@ -1,5 +1,4 @@
-const express = require('express');
-const router = express.Router();
+const router = require('express').Router();
 const pricingController = require('../controllers/pricingController');
 const authMiddleware = require('../middleware/auth');
 
@@ -11,8 +10,5 @@ router.get('/analyze/:eventId', pricingController.analyzePricing);
 
 // Get pricing history for an event
 router.get('/history/:eventId', pricingController.getPricingHistory);
-
-// Update pricing recommendation status
-router.put('/:id/status', pricingController.updatePricingStatus);
 
 module.exports = router; 

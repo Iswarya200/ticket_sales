@@ -9,18 +9,11 @@ const Pricing = sequelize.define('Pricing', {
     },
     eventId: {
         type: DataTypes.STRING,
-        allowNull: false,
-        validate: {
-            notEmpty: true
-        }
+        allowNull: false
     },
     ticketId: {
         type: DataTypes.UUID,
-        allowNull: false,
-        references: {
-            model: 'tickets',
-            key: 'id'
-        }
+        allowNull: false
     },
     currentPrice: {
         type: DataTypes.DECIMAL(10, 2),
@@ -42,30 +35,14 @@ const Pricing = sequelize.define('Pricing', {
         type: DataTypes.TEXT,
         allowNull: false
     },
-    status: {
-        type: DataTypes.ENUM('PENDING', 'APPROVED', 'REJECTED'),
-        defaultValue: 'PENDING'
-    },
     metrics: {
         type: DataTypes.JSONB,
         allowNull: false,
-        defaultValue: {},
-        validate: {
-            isValidMetrics(value) {
-                if (!value.salesRate || !value.totalTickets || !value.soldTickets) {
-                    throw new Error('Metrics must include salesRate, totalTickets, and soldTickets');
-                }
-            }
-        }
+        defaultValue: {}
     }
 }, {
     tableName: 'pricings',
-    timestamps: true,
-    indexes: [
-        { fields: ['eventId'] },
-        { fields: ['ticketId'] },
-        { fields: ['status'] }
-    ]
+    timestamps: true
 });
 
 // Initialize the pricing table

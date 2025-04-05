@@ -3,11 +3,10 @@ const Ticket = require('../models/ticketModel');
 const { emitRecommendationUpdate } = require('../utils/socketEmitter');
 
 const pricingController = {
-    async analyzePricing(req, res) {
+    analyzePricing: async (req, res) => {
         try {
             const { eventId } = req.params;
             
-            // Get ticket sales data
             const tickets = await Ticket.findAll({
                 where: { eventId },
                 attributes: ['id', 'price', 'totalQuantity', 'soldQuantity']
@@ -82,7 +81,7 @@ const pricingController = {
         }
     },
 
-    async getPricingHistory(req, res) {
+    getPricingHistory: async (req, res) => {
         try {
             const { eventId } = req.params;
             
@@ -95,38 +94,6 @@ const pricingController = {
         } catch (error) {
             console.error('Error fetching pricing history:', error);
             res.status(500).json({ error: 'Failed to fetch pricing history' });
-        }
-    },
-
-    async updatePricingStatus(req, res) {
-        try {
-            const { id } = req.params;
-            const { status } = req.body;
-
-            if (!['APPROVED', 'REJECTED'].includes(status)) {
-                return res.status(400).json({ error: 'Invalid status' });
-            }
-
-            const pricing = await Pricing.findByPk(id);
-            if (!pricing) {
-                return res.status(404).json({ error: 'Pricing recommendation not found' });
-            }
-
-            pricing.status = status;
-            await pricing.save();
-
-            if (status === 'APPROVED') {
-                // Update ticket price if approved
-                await Ticket.update(
-                    { price: pricing.suggestedPrice },
-                    { where: { id: pricing.ticketId } }
-                );
-            }
-
-            res.json(pricing);
-        } catch (error) {
-            console.error('Error updating pricing status:', error);
-            res.status(500).json({ error: 'Failed to update pricing status' });
         }
     }
 };
